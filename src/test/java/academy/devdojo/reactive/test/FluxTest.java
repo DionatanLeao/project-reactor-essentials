@@ -187,22 +187,18 @@ public class FluxTest {
     }
 
     @Test
-    public void connectableFlux() throws InterruptedException {
+    public void connectableFlux() {
         ConnectableFlux<Integer> connectableFlux = Flux.range(1, 10)
                 .log()
                 .delayElements(Duration.ofMillis(100))
                 .publish();
 
 //        connectableFlux.connect();
-
 //        log.info("Thread sleeping for 300ms");
 //        Thread.sleep(300);
-
 //        connectableFlux.subscribe(i -> log.info("Sub1 number {}", i));
-
 //        log.info("Thread sleeping for 200ms");
 //        Thread.sleep(200);
-
 //        connectableFlux.subscribe(i -> log.info("Sub2 number {}", i));
 
         StepVerifier
@@ -210,6 +206,22 @@ public class FluxTest {
                 .then(connectableFlux::connect)
                 .thenConsumeWhile(i -> i <= 5)
                 .expectNext(6,7,8,9,10)
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void connectableFluxAutoConnect() {
+        Flux<Integer> autoConnect = Flux.range(1, 5)
+                .log()
+                .delayElements(Duration.ofMillis(100))
+                .publish()
+                .autoConnect(2);
+
+        StepVerifier
+                .create(autoConnect)
+                .then(autoConnect::subscribe)
+                .expectNext(1,2,3,4,5)
                 .expectComplete()
                 .verify();
     }
