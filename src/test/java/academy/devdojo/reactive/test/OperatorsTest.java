@@ -7,6 +7,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
+import reactor.util.function.Tuple3;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -354,6 +355,43 @@ public class OperatorsTest {
                 .expectNext("nameA1", "nameA2", "nameB1", "nameB2")
                 .verifyComplete();
 
+    }
+
+    @Test
+    public void zipOperator() {
+        Flux<String> titles = Flux.just("Grand Blue", "Baki");
+        Flux<String> studios = Flux.just("Zero-G", "TMS Entertainment");
+        Flux<Integer> episodes = Flux.just(12, 24);
+
+        Flux<Anime> animeFlux = Flux.zip(titles, studios, episodes)
+                .flatMap(tuple -> Flux.just(new Anime(tuple.getT1(), tuple.getT2(), tuple.getT3())));
+
+        animeFlux.subscribe(anime -> log.info(anime.toString()));
+
+        StepVerifier.create(animeFlux)
+                .expectSubscription()
+                .expectNext(
+                        new Anime("Grand Blue", "Zero-G", 12),
+                        new Anime("Baki", "TMS Entertainment", 24))
+                .verifyComplete();
+    }
+
+    @Test
+    public void zipWithOperator() {
+        Flux<String> titles = Flux.just("Grand Blue", "Baki");
+        Flux<Integer> episodes = Flux.just(12, 24);
+
+        Flux<Anime> animeFlux = titles.zipWith(episodes)
+                .flatMap(tuple -> Flux.just(new Anime(tuple.getT1(), null, tuple.getT2())));
+
+        animeFlux.subscribe(anime -> log.info(anime.toString()));
+
+        StepVerifier.create(animeFlux)
+                .expectSubscription()
+                .expectNext(
+                        new Anime("Grand Blue", null, 12),
+                        new Anime("Baki", null, 24))
+                .verifyComplete();
     }
 
     private Flux<String> findByName(String name) {
