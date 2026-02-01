@@ -179,6 +179,52 @@ public class OperatorsTest {
         Assertions.assertTrue(atomicLong.get() > 0);
     }
 
+    @Test
+    public void concatOperator() {
+        Flux<String> flux1 = Flux.just("a", "b");
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> concatFlux = Flux.concat(flux1, flux2).log();
+
+        StepVerifier
+                .create(concatFlux)
+                .expectSubscription()
+                .expectNext("a", "b", "c", "d")
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void concatWithOperator() {
+        Flux<String> flux1 = Flux.just("a", "b");
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> concatWith= flux1.concatWith(flux2).log();
+
+        StepVerifier
+                .create(concatWith)
+                .expectSubscription()
+                .expectNext("a", "b", "c", "d")
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void combineLastOperator() {
+        Flux<String> flux1 = Flux.just("a", "b");
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> stringFlux =
+                Flux.combineLatest(flux1, flux2, (s1, s2) -> s1.toUpperCase() + s2.toUpperCase()).log();
+
+        StepVerifier
+                .create(stringFlux)
+                .expectSubscription()
+                .expectNext("BC", "BD")
+                .expectComplete()
+                .verify();
+    }
+
     private Flux<Object> emptyFlux() {
         return Flux.empty();
     }
