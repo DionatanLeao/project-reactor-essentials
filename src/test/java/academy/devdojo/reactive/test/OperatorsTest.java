@@ -259,6 +259,69 @@ public class OperatorsTest {
                 .verify();
     }
 
+    @Test
+    public void mergeSequentialOperator() {
+        Flux<String> flux1 = Flux.just("a", "b");
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> mergeSequentialFlux = Flux.mergeSequential(flux1, flux2, flux1).log();
+
+        mergeSequentialFlux.subscribe(log::info);
+
+        StepVerifier
+                .create(mergeSequentialFlux)
+                .expectSubscription()
+                .expectNext("a", "b", "c", "d", "a", "b")
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void concatDelayErrorOperator() {
+        Flux<String> flux1 = Flux.just("a", "b")
+                .map(s -> {
+                    if (s.equals("b")) {
+                        throw new IllegalArgumentException();
+                    }
+                    return s;
+                });
+
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> concatFlux = Flux.concatDelayError(flux1, flux2).log();
+
+        StepVerifier
+                .create(concatFlux)
+                .expectSubscription()
+                .expectNext("a", "c", "d")
+                .expectError()
+                .verify();
+    }
+
+    @Test
+    public void mergeDelayErrorOperator() {
+        Flux<String> flux1 = Flux.just("a", "b")
+                .map(s -> {
+                    if (s.equals("b")) {
+                        throw new IllegalArgumentException();
+                    }
+                    return s;
+                });
+
+        Flux<String> flux2 = Flux.just("c", "d");
+
+        Flux<String> mergeFlux = Flux.mergeDelayError(1,flux1, flux2).log();
+
+        mergeFlux.subscribe(log::info);
+
+        StepVerifier
+                .create(mergeFlux)
+                .expectSubscription()
+                .expectNext("a", "c", "d")
+                .expectError()
+                .verify();
+    }
+
     private Flux<Object> emptyFlux() {
         return Flux.empty();
     }
