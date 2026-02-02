@@ -2,20 +2,46 @@ package academy.devdojo.reactive.test;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import reactor.blockhound.BlockHound;
+import reactor.blockhound.BlockingOperationError;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
-import reactor.util.function.Tuple3;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
 public class OperatorsTest {
+    @BeforeAll
+    public static void setUp() {
+        BlockHound.install();
+    }
+
+    @Test
+    public void blockHoundWorks() throws TimeoutException, InterruptedException {
+        try {
+            FutureTask<?> task = new FutureTask<>(() -> {
+                Thread.sleep(0);
+                return "";
+            });
+            Schedulers.parallel().schedule(task);
+
+            task.get(10, TimeUnit.SECONDS);
+            Assertions.fail("should fail");
+        } catch (Exception e) {
+            Assertions.assertTrue(e.getCause() instanceof BlockingOperationError);
+        }
+    }
+
     @Test
     public void subscribeOnSimple() {
         Flux<Integer> flux = Flux.range(1, 4)
@@ -200,7 +226,7 @@ public class OperatorsTest {
         Flux<String> flux1 = Flux.just("a", "b");
         Flux<String> flux2 = Flux.just("c", "d");
 
-        Flux<String> concatWith= flux1.concatWith(flux2).log();
+        Flux<String> concatWith = flux1.concatWith(flux2).log();
 
         StepVerifier
                 .create(concatWith)
@@ -311,7 +337,7 @@ public class OperatorsTest {
 
         Flux<String> flux2 = Flux.just("c", "d");
 
-        Flux<String> mergeFlux = Flux.mergeDelayError(1,flux1, flux2).log();
+        Flux<String> mergeFlux = Flux.mergeDelayError(1, flux1, flux2).log();
 
         mergeFlux.subscribe(log::info);
 
